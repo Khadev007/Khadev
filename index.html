@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,6 +23,9 @@
             <div class="nav-links">
                 <a href="#home">Home</a>
                 <a href="#about">About</a>
+                <a href="#weather">Weather</a>
+                <a href="#currency">Currency</a>
+                <a href="#scores">Scores</a>
                 <a href="#projects">Projects</a>
                 <a href="#contact">Contact</a>
                 <!-- <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode">
@@ -34,7 +38,7 @@
     <main>
         <section id="home" class="hero container">
             <div class="hero-content reveal">
-                <p class="eyebrow">WELCOME TO MY PORTFOLIO</p>
+                <p class="eyebrow">WELCOME TO KHADEV | SOFTWARE ENGINEERING PORTFOLIO</p>
 
                 <h1>
                     Hello, I'm <span>Khalid</span><br>
@@ -42,8 +46,17 @@
                 </h1>
 
                 <p class="hero-text">
-                    I create responsive, secure, and modern web applications
-                    that help businesses grow online.
+                    I specialize in crafting responsive, secure, and
+                    high-performing web applications that transform ideas into
+                    reliable digital products. I combine clean engineering with
+                    thoughtful interface design to help businesses connect with
+                    their audiences and grow online.
+                </p>
+
+                <p class="hero-detail">
+                    Explore a collection of thoughtful digital experiences,
+                    from polished landing pages to practical tools powered by
+                    JavaScript and React.
                 </p>
 
                 <div class="hero-actions">
@@ -58,7 +71,7 @@
 
                 <div class="stats">
                     <div>
-                        <strong>3+</strong>
+                        <strong>11+</strong>
                         <small>Projects</small>
                     </div>
 
@@ -86,18 +99,147 @@
             <h2>Building digital experiences with purpose.</h2>
 
             <p class="section-text">
-                I am a passionate Software Engineer focused on building
-                responsive, secure, and user-friendly websites. I turn ideas
-                into useful digital products through clean code and thoughtful design.
+                I am a Software Engineer who builds responsive, secure, and
+                user-focused digital products. I combine strong frontend
+                fundamentals with thoughtful UI/UX to turn ideas into clear,
+                reliable experiences that work beautifully across devices.
+            </p>
+
+            <p class="section-text">
+                Through 11+ projects, I have developed a practical approach to
+                solving problems: understand the goal, design with the user in
+                mind, and deliver clean, maintainable code. I enjoy working with
+                HTML, CSS, JavaScript, and React to create interfaces that are
+                accessible, intuitive, and built for real-world use.
             </p>
 
             <div class="skills">
                 <span>HTML</span>
                 <span>CSS</span>
                 <span>JavaScript</span>
+                <span>React</span>
                 <span>Responsive Design</span>
                 <span>UI/UX</span>
             </div>
+        </section>
+
+        <section id="weather" class="section container reveal">
+            <div class="weather-heading">
+                <div>
+                    <p class="eyebrow">LIVE WEATHER</p>
+                    <h2>See what the sky is doing.</h2>
+                    <p class="section-text">Search any city for current conditions and the next five days.</p>
+                </div>
+
+                <form class="weather-search" id="weather-form">
+                    <label class="sr-only" for="city-input">Search for a city</label>
+                    <div class="weather-input-wrap">
+                        <input id="city-input" type="search" placeholder="Search a city" value="Lagos"
+                            autocomplete="off" required aria-controls="city-suggestions" aria-expanded="false">
+                        <ul class="city-suggestions" id="city-suggestions" role="listbox"></ul>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Check weather</button>
+                </form>
+            </div>
+
+            <div class="weather-status" id="weather-status" role="status" aria-live="polite">Loading Lagos weather...
+            </div>
+
+            <div class="weather-dashboard" id="weather-dashboard" aria-live="polite">
+                <div class="current-weather">
+                    <div>
+                        <p class="weather-location" id="weather-location">Lagos, Nigeria</p>
+                        <p class="weather-date" id="weather-date">Today</p>
+                    </div>
+                    <div class="weather-main">
+                        <span class="weather-icon" id="weather-icon" aria-hidden="true">☀</span>
+                        <strong id="weather-temperature">--°</strong>
+                    </div>
+                    <p class="weather-description" id="weather-description">Fetching conditions...</p>
+                    <div class="weather-details">
+                        <span>Feels like <strong id="weather-feels">--°</strong></span>
+                        <span>Humidity <strong id="weather-humidity">--%</strong></span>
+                        <span>Wind <strong id="weather-wind">-- km/h</strong></span>
+                    </div>
+                </div>
+                <div class="forecast-list" id="forecast-list"></div>
+            </div>
+        </section>
+
+        <section id="currency" class="section container reveal">
+            <div class="currency-heading">
+                <div>
+                    <p class="eyebrow">GLOBAL CURRENCY</p>
+                    <h2>Convert money anywhere in the world.</h2>
+                    <p class="section-text">Compare live exchange rates across currencies in a few clicks.</p>
+                </div>
+                <span class="currency-update" id="currency-update">Rates update automatically</span>
+            </div>
+
+            <form class="currency-converter" id="currency-form">
+                <div class="currency-field">
+                    <label for="currency-amount">Amount</label>
+                    <input id="currency-amount" type="number" min="0" step="any" value="1" required>
+                </div>
+                <div class="currency-field">
+                    <label for="currency-from">From</label>
+                    <select id="currency-from" required></select>
+                </div>
+                <button class="swap-currency" id="swap-currency" type="button" aria-label="Swap currencies"
+                    title="Swap currencies">⇄</button>
+                <div class="currency-field">
+                    <label for="currency-to">To</label>
+                    <select id="currency-to" required></select>
+                </div>
+                <button class="btn btn-primary currency-submit" type="submit">Convert</button>
+            </form>
+
+            <div class="currency-result" id="currency-result" aria-live="polite">
+                <span class="currency-result-label">Your conversion</span>
+                <strong id="currency-output">Loading rates...</strong>
+                <span id="currency-rate">Fetching the latest exchange rate</span>
+            </div>
+        </section>
+
+        <section id="scores" class="section container reveal">
+            <div class="scores-heading">
+                <div>
+                    <p class="eyebrow">MATCHDAY LIVE</p>
+                    <h2>Football scores from around the world.</h2>
+                    <p class="section-text">Check today&apos;s fixtures, results, and live match status in one place.
+                    </p>
+                </div>
+                <div class="scores-meta">
+                    <span id="scores-date">Today</span>
+                    <span class="live-indicator"><i></i> Live updates</span>
+                </div>
+            </div>
+
+            <div class="scores-status" id="scores-status" role="status" aria-live="polite">Loading today&apos;s
+                scores...</div>
+            <div class="scores-controls">
+                <label for="league-select">Competition</label>
+                <select id="league-select">
+                    <option value="">All football</option>
+                    <option value="English Premier League">English Premier League</option>
+                    <option value="Spanish La Liga">Spanish La Liga</option>
+                    <option value="Italian Serie A">Italian Serie A</option>
+                    <option value="German Bundesliga">German Bundesliga</option>
+                    <option value="French Ligue 1">French Ligue 1</option>
+                    <option value="Saudi Pro League">Saudi Pro League</option>
+                    <option value="UEFA Champions League">UEFA Champions League</option>
+                    <option value="Nigerian Professional Football League">Nigerian Professional Football League</option>
+                </select>
+            </div>
+            <form class="team-search" id="team-search-form">
+                <label for="team-search-input">Find a team</label>
+                <div class="team-search-fields">
+                    <input id="team-search-input" type="search" placeholder="Search Arsenal, Al Nassr, Barcelona..."
+                        autocomplete="off" required>
+                    <button class="btn btn-primary" type="submit">Search team</button>
+                </div>
+            </form>
+            <div class="scores-list" id="scores-list" aria-live="polite"></div>
         </section>
 
         <section id="projects" class="section container reveal">
@@ -141,6 +283,17 @@
                         <a href="#" class="project-link">View project →</a>
                     </div>
                 </article>
+
+                <article class="project-card" data-category="frontend">
+                    <img src="./IMAGES/portfolio bg img1.jpg" alt="Projects and task manager project">
+
+                    <div class="project-info">
+                        <h3>Projects &amp; Task Manager</h3>
+                        <p>A practical workspace for organizing projects and tasks.</p>
+                        <a href="https://projects-and-task-manager.vercel.app/" class="project-link" target="_blank"
+                            rel="noopener noreferrer">View project →</a>
+                    </div>
+                </article>
             </div>
         </section>
 
@@ -159,12 +312,7 @@
                     <input type="email" name="email" placeholder="Your email" required>
                 </div>
 
-                <textarea
-                    name="message"
-                    rows="6"
-                    placeholder="Tell me about your project..."
-                    required
-                ></textarea>
+                <textarea name="message" rows="6" placeholder="Tell me about your project..." required></textarea>
 
                 <button type="submit" class="btn btn-primary">
                     Send Message
@@ -175,17 +323,58 @@
 
             <div class="social-links">
                 <a href="mailto:raheemkhalid817@gmail.com">Email</a>
-                <a href="#" target="_blank">WhatsApp</a>
+                <a href="https://wa.me/2347072340676" target="_blank" rel="noopener noreferrer">WhatsApp</a>
                 <a href="#" target="_blank">TikTok</a>
                 <a href="#" target="_blank">YouTube</a>
             </div>
         </section>
     </main>
 
-    <footer>
-        <p>© 2026 Khalid. Built with HTML, CSS and JavaScript.</p>
+    <footer class="site-footer">
+        <div class="footer-content container">
+            <div class="footer-intro">
+                <a href="#home" class="logo">KHADEV<span></span></a>
+                <p>Thoughtful interfaces, clean code, and digital experiences built to make an impact.</p>
+                <a class="footer-cta" href="mailto:raheemkhalid817@gmail.com">Let's build something useful <span
+                        aria-hidden="true">↗</span></a>
+            </div>
+
+            <div class="footer-column">
+                <h3>Explore</h3>
+                <a href="#about">About me</a>
+                <a href="#weather">Weather</a>
+                <a href="#currency">Currency exchange</a>
+                <a href="#projects">Projects</a>
+                <a href="#contact">Contact</a>
+            </div>
+
+            <div class="footer-column">
+                <h3>Reach me</h3>
+                <a href="mailto:raheemkhalid817@gmail.com">Email me</a>
+                <a href="https://wa.me/2347072340676" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                <span>Oyo State, Nigeria</span>
+                <span>Available for new projects</span>
+                <span>Open to collaborations worldwide</span>
+            </div>
+
+            <div class="footer-column">
+                <h3>What I do</h3>
+                <span>Frontend development</span>
+                <span>Responsive websites</span>
+                <span>UI design</span>
+                <span>Clean, reliable code</span>
+                <span>API integrations</span>
+                <span>Interactive web tools</span>
+            </div>
+        </div>
+
+        <div class="footer-bottom container">
+            <p>© 2026 Khalid. Built with HTML, CSS and JavaScript.</p>
+            <a href="#home">Back to top ↑</a>
+        </div>
     </footer>
 
     <script src="./portfolio.js"></script>
 </body>
+
 </html>
