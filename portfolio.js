@@ -29,6 +29,14 @@ const showWeatherError = message => {
     weatherDashboard.hidden = true;
 };
 
+const fetchWeatherJson = async url => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Weather request failed: ${response.status}`);
+    const data = await response.json();
+    if (data.error) throw new Error(data.reason || "Weather data unavailable");
+    return data;
+};
+
 const closeSuggestions = () => {
     citySuggestions.innerHTML = "";
     citySuggestions.classList.remove("open");
@@ -119,19 +127,23 @@ document.addEventListener("click", event => {
 });
 
 const loadWeather = async city => {
-    weatherStatus.textContent = `Finding ${city}...`;
+    const trimmedCity = city.trim();
+    if (!trimmedCity) {
+        showWeatherError("Enter a city to see its forecast.");
+        return;
+    }
+
+    weatherStatus.textContent = `Finding ${trimmedCity}...`;
     weatherStatus.classList.remove("error");
     weatherDashboard.hidden = false;
 
     try {
         closeSuggestions();
-        const locationResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
-        const locationData = await locationResponse.json();
+        const locationData = await fetchWeatherJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmedCity)}&count=1&language=en&format=json`);
         const location = locationData.results?.[0];
         if (!location) throw new Error("City not found");
 
-        const forecastResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto`);
-        const data = await forecastResponse.json();
+        const data = await fetchWeatherJson(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto`);
         const current = data.current;
         const [description, icon] = getWeatherLabel(current.weather_code);
 
@@ -155,7 +167,9 @@ const loadWeather = async city => {
 
         weatherStatus.textContent = `Updated for ${location.timezone.replaceAll("_", " ")}`;
     } catch (error) {
-        showWeatherError("Weather is unavailable right now. Try another city.");
+        showWeatherError(error.message === "City not found"
+            ? "That city was not found. Try a nearby city or country."
+            : "Weather is unavailable right now. Check your connection and try again.");
     }
 };
 
@@ -258,6 +272,37 @@ const leagueSelect = document.querySelector("#league-select");
 const teamSearchForm = document.querySelector("#team-search-form");
 const teamSearchInput = document.querySelector("#team-search-input");
 
+const premierLeagueName = "English Premier League";
+
+const getLocalDateKey = date => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const fetchScoresJson = async url => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Scores request failed: ${response.status}`);
+    const data = await response.json();
+    if (data.error) throw new Error(data.message || "Scores unavailable");
+    return data;
+};
+
+const sortMatches = matches => [...matches].sort((first, second) => {
+    const firstPremierLeague = first.strLeague === premierLeagueName;
+    const secondPremierLeague = second.strLeague === premierLeagueName;
+    if (firstPremierLeague !== secondPremierLeague) return firstPremierLeague ? -1 : 1;
+
+    const firstStatus = getMatchStatus(first)[1];
+    const secondStatus = getMatchStatus(second)[1];
+    const firstLive = firstStatus === "live";
+    const secondLive = secondStatus === "live";
+    if (firstLive !== secondLive) return firstLive ? -1 : 1;
+
+    return new Date(first.strTimestamp || 0) - new Date(second.strTimestamp || 0);
+});
+
 const formatMatchTime = date => date
     ? new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(new Date(date))
     : "Time TBC";
@@ -266,7 +311,9 @@ const getMatchStatus = match => {
     if (match.strStatus === "Match Finished" || match.strStatus === "FT") return ["Finished", "finished"];
     if (match.strStatus === "Postponed") return ["Postponed", "postponed"];
     if (match.strStatus === "Cancelled") return ["Cancelled", "cancelled"];
-    if (match.strStatus === "In Progress" || match.strStatus === "Live") return [match.strProgress || "LIVE", "live"];
+    if (["In Progress", "Live", "1H", "2H", "HT", "ET", "P"].includes(match.strStatus)) {
+        return [match.strProgress || match.strStatus, "live"];
+    }
     return ["Upcoming", "upcoming"];
 };
 
@@ -324,7 +371,7 @@ const renderScores = matches => {
         return;
     }
 
-    const leagues = matches.reduce((groups, match) => {
+    const leagues = sortMatches(matches).reduce((groups, match) => {
         const league = match.strLeague || "Football";
         (groups[league] ||= []).push(match);
         return groups;
@@ -376,14 +423,13 @@ scoresList?.addEventListener("click", event => {
 
 const loadScores = async () => {
     const today = new Date();
-    const date = today.toISOString().slice(0, 10);
+    const date = getLocalDateKey(today);
     scoresDate.textContent = new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(today);
 
     try {
         const league = leagueSelect.value;
         const leagueQuery = league ? `&l=${encodeURIComponent(league)}` : "";
-        const response = await fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${date}&s=Soccer${leagueQuery}`);
-        const data = await response.json();
+        const data = await fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${date}&s=Soccer${leagueQuery}`);
         const matches = (data.events || []).filter(match => match.strSport === "Soccer");
         renderScores(matches);
         const selectedLabel = league || "all football";
@@ -400,17 +446,14 @@ const loadTeamMatches = async teamName => {
     scoresStatus.classList.remove("error");
 
     try {
-        const searchResponse = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`);
-        const searchData = await searchResponse.json();
+        const searchData = await fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`);
         const team = searchData.teams?.find(item => item.strSport === "Soccer") || searchData.teams?.[0];
         if (!team) throw new Error("Team not found");
 
-        const [lastResponse, nextResponse] = await Promise.all([
-            fetch(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${team.idTeam}`),
-            fetch(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${team.idTeam}`)
+        const [lastData, nextData] = await Promise.all([
+            fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${team.idTeam}`),
+            fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${team.idTeam}`)
         ]);
-        const lastData = await lastResponse.json();
-        const nextData = await nextResponse.json();
         const matches = [...(lastData.results || []), ...(nextData.events || [])]
             .filter(match => match.strSport === "Soccer")
             .sort((first, second) => new Date(first.strTimestamp || 0) - new Date(second.strTimestamp || 0));
