@@ -1,0 +1,13 @@
+{
+    "name": "khalid-portfolio",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Khalid's portfolio and backend API",
+    "scripts": {
+        "start": "node backend/server.js",
+        "dev": "node --watch backend/server.js"
+    },
+    "engines": {
+        "node": ">=18"
+    }
+}

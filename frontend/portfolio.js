@@ -7,6 +7,7 @@ const cityInput = document.querySelector("#city-input");
 const citySuggestions = document.querySelector("#city-suggestions");
 const weatherStatus = document.querySelector("#weather-status");
 const weatherDashboard = document.querySelector("#weather-dashboard");
+const apiBase = "/api";
 let suggestionTimer;
 let suggestedLocations = [];
 let activeSuggestion = -1;
@@ -78,7 +79,7 @@ const findSuggestions = async city => {
     }
 
     try {
-        const response = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=en&format=json`);
+        const response = await fetch(`${apiBase}/weather/search?name=${encodeURIComponent(city)}&count=5`);
         const data = await response.json();
         showSuggestions(data.results || []);
     } catch (error) {
@@ -139,11 +140,19 @@ const loadWeather = async city => {
 
     try {
         closeSuggestions();
-        const locationData = await fetchWeatherJson(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trimmedCity)}&count=1&language=en&format=json`);
+        const locationData = await fetchWeatherJson(`${apiBase}/weather/search?name=${encodeURIComponent(trimmedCity)}&count=1`);
         const location = locationData.results?.[0];
         if (!location) throw new Error("City not found");
 
-        const data = await fetchWeatherJson(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min&forecast_days=5&timezone=auto`);
+        const forecastQuery = new URLSearchParams({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            current: "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+            daily: "weather_code,temperature_2m_max,temperature_2m_min",
+            forecast_days: "5",
+            timezone: "auto"
+        });
+        const data = await fetchWeatherJson(`${apiBase}/weather/forecast?${forecastQuery}`);
         const current = data.current;
         const [description, icon] = getWeatherLabel(current.weather_code);
 
@@ -231,7 +240,7 @@ const convertCurrency = () => {
 
 const loadCurrencyRates = async () => {
     try {
-        const response = await fetch("https://open.er-api.com/v6/latest/USD");
+        const response = await fetch(`${apiBase}/currency/rates`);
         const data = await response.json();
         if (data.result !== "success") throw new Error("Exchange rates unavailable");
 
@@ -338,7 +347,7 @@ const loadMatchDetails = async (matchId, details, teamSide) => {
     details.innerHTML = "<p>Loading match details...</p>";
 
     try {
-        const response = await fetch(`https://www.thesportsdb.com/api/v1/json/3/lookupevent.php?id=${matchId}`);
+        const response = await fetch(`${apiBase}/scores/match?id=${encodeURIComponent(matchId)}`);
         const data = await response.json();
         const match = data.events?.[0];
         if (!match) throw new Error("Match details unavailable");
@@ -428,8 +437,9 @@ const loadScores = async () => {
 
     try {
         const league = leagueSelect.value;
-        const leagueQuery = league ? `&l=${encodeURIComponent(league)}` : "";
-        const data = await fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${date}&s=Soccer${leagueQuery}`);
+        const query = new URLSearchParams({ date });
+        if (league) query.set("league", league);
+        const data = await fetchScoresJson(`${apiBase}/scores/events?${query}`);
         const matches = (data.events || []).filter(match => match.strSport === "Soccer");
         renderScores(matches);
         const selectedLabel = league || "all football";
@@ -446,15 +456,9 @@ const loadTeamMatches = async teamName => {
     scoresStatus.classList.remove("error");
 
     try {
-        const searchData = await fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t=${encodeURIComponent(teamName)}`);
-        const team = searchData.teams?.find(item => item.strSport === "Soccer") || searchData.teams?.[0];
-        if (!team) throw new Error("Team not found");
-
-        const [lastData, nextData] = await Promise.all([
-            fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id=${team.idTeam}`),
-            fetchScoresJson(`https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id=${team.idTeam}`)
-        ]);
-        const matches = [...(lastData.results || []), ...(nextData.events || [])]
+        const data = await fetchScoresJson(`${apiBase}/scores/team?name=${encodeURIComponent(teamName)}`);
+        const team = data.team;
+        const matches = [...(data.last.results || []), ...(data.next.events || [])]
             .filter(match => match.strSport === "Soccer")
             .sort((first, second) => new Date(first.strTimestamp || 0) - new Date(second.strTimestamp || 0));
 
@@ -541,16 +545,25 @@ if ("IntersectionObserver" in window) {
 }
 
 // Contact form
-contactForm?.addEventListener("submit", event => {
+contactForm?.addEventListener("submit", async event => {
     event.preventDefault();
 
     const name = contactForm.querySelector('[name="name"]').value.trim();
     const email = contactForm.querySelector('[name="email"]').value.trim();
     const message = contactForm.querySelector('[name="message"]').value.trim();
-    const subject = `Portfolio message from ${name}`;
-    const body = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
-
-    formMessage.textContent = "Opening your email app...";
-    window.location.href = `mailto:raheemkhalid817@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    formMessage.textContent = "Sending your message...";
+    try {
+        const response = await fetch(`${apiBase}/contact`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, message })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Message could not be sent");
+        formMessage.textContent = data.message;
+        contactForm.reset();
+    } catch (error) {
+        formMessage.textContent = error.message || "Message could not be sent. Please try again.";
+    }
 
 });
