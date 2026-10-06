@@ -9,6 +9,7 @@ const weatherStatus = document.querySelector("#weather-status");
 const weatherDashboard = document.querySelector("#weather-dashboard");
 const apiBase = "/api";
 let suggestionTimer;
+let suggestionController;
 let suggestedLocations = [];
 let activeSuggestion = -1;
 
@@ -39,6 +40,8 @@ const fetchWeatherJson = async url => {
 };
 
 const closeSuggestions = () => {
+    suggestionController?.abort();
+    suggestionController = undefined;
     citySuggestions.innerHTML = "";
     citySuggestions.classList.remove("open");
     cityInput.setAttribute("aria-expanded", "false");
@@ -78,17 +81,31 @@ const findSuggestions = async city => {
         return;
     }
 
+    const controller = new AbortController();
+    suggestionController = controller;
+
     try {
-        const response = await fetch(`${apiBase}/weather/search?name=${encodeURIComponent(city)}&count=5`);
+        const response = await fetch(
+            `${apiBase}/weather/search?name=${encodeURIComponent(city)}&count=5`,
+            { signal: controller.signal }
+        );
+        if (!response.ok) throw new Error(`City search failed: ${response.status}`);
         const data = await response.json();
+        if (suggestionController !== controller) return;
         showSuggestions(data.results || []);
     } catch (error) {
+        if (error.name === "AbortError") return;
         closeSuggestions();
+        weatherStatus.textContent = "City suggestions are unavailable. You can still submit your search.";
+        weatherStatus.classList.add("error");
+    } finally {
+        if (suggestionController === controller) suggestionController = undefined;
     }
 };
 
 cityInput?.addEventListener("input", () => {
     clearTimeout(suggestionTimer);
+    closeSuggestions();
     suggestionTimer = setTimeout(() => findSuggestions(cityInput.value.trim()), 250);
 });
 
@@ -495,6 +512,12 @@ if (scoresList) {
 document.body.classList.add("dark");
 
 // Mobile menu
+const closeMobileMenu = () => {
+    navLinks?.classList.remove("open");
+    menuButton?.setAttribute("aria-expanded", "false");
+    if (menuButton) menuButton.textContent = "☰";
+};
+
 menuButton?.addEventListener("click", () => {
     const isOpen = navLinks.classList.toggle("open");
 
@@ -503,27 +526,35 @@ menuButton?.addEventListener("click", () => {
 });
 
 document.querySelectorAll(".nav-links a").forEach(link => {
-    link.addEventListener("click", () => {
-        navLinks.classList.remove("open");
-        menuButton.textContent = "☰";
-        menuButton.setAttribute("aria-expanded", "false");
-    });
+    link.addEventListener("click", closeMobileMenu);
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") closeMobileMenu();
+});
+
+document.addEventListener("click", event => {
+    if (!event.target.closest(".nav")) closeMobileMenu();
 });
 
 // Project filtering
 document.querySelectorAll(".filter").forEach(button => {
+    button.type = "button";
+    button.setAttribute("aria-pressed", button.classList.contains("active"));
+
     button.addEventListener("click", () => {
-        document.querySelector(".filter.active")?.classList.remove("active");
+        document.querySelectorAll(".filter").forEach(filter => {
+            filter.classList.remove("active");
+            filter.setAttribute("aria-pressed", "false");
+        });
         button.classList.add("active");
+        button.setAttribute("aria-pressed", "true");
 
         const selectedCategory = button.dataset.filter;
 
         document.querySelectorAll(".project-card").forEach(project => {
-            project.style.display =
-                selectedCategory === "all" ||
-                    project.dataset.category === selectedCategory
-                    ? "block"
-                    : "none";
+            project.hidden = selectedCategory !== "all" &&
+                project.dataset.category !== selectedCategory;
         });
     });
 });
@@ -548,10 +579,13 @@ if ("IntersectionObserver" in window) {
 contactForm?.addEventListener("submit", async event => {
     event.preventDefault();
 
+    const submitButton = contactForm.querySelector('button[type="submit"]');
     const name = contactForm.querySelector('[name="name"]').value.trim();
     const email = contactForm.querySelector('[name="email"]').value.trim();
     const message = contactForm.querySelector('[name="message"]').value.trim();
     formMessage.textContent = "Sending your message...";
+    submitButton.disabled = true;
+
     try {
         const response = await fetch(`${apiBase}/contact`, {
             method: "POST",
@@ -564,6 +598,7 @@ contactForm?.addEventListener("submit", async event => {
         contactForm.reset();
     } catch (error) {
         formMessage.textContent = error.message || "Message could not be sent. Please try again.";
+    } finally {
+        submitButton.disabled = false;
     }
-
 });
